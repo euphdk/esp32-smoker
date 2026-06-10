@@ -60,5 +60,6 @@ constexpr uint32_t WifiReconnectBackoffMs = 5000;
 constexpr uint32_t MqttReconnectBackoffMs = 5000;
 constexpr uint32_t StatusPublishMinIntervalMs = 1000;
 constexpr uint32_t LogBatchIntervalMs = 100;
+constexpr const char *MqttDiscoveryPrefix = "homeassistant";
 
 } // namespace Config

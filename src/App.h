@@ -14,6 +14,12 @@ public:
   void begin();
   void loop();
 
+  void setMqttCommandHandlers(void (*setTarget)(float), void (*setCalibration)(float), void (*ackError)(unsigned long));
+
+  void setTarget(float v) { controller_.setTarget(v); }
+  void setCalibration(float v) { settings_.setCalibrationC(v); }
+  void acknowledgeError(unsigned long nowMs) { controller_.acknowledgeError(nowMs); }
+
 private:
   LogBuffer logBuffer_;
   Settings settings_;

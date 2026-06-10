@@ -24,6 +24,12 @@ void App::begin() {
   ui_.drawMain(sensor_.currentC() + settings_.calibrationC(), controller_.status(), true);
 }
 
+void App::setMqttCommandHandlers(void (*setTarget)(float), void (*setCalibration)(float), void (*ackError)(unsigned long)) {
+  network_.setCommandTarget(setTarget);
+  network_.setCommandCalibration(setCalibration);
+  network_.setCommandAck(ackError);
+}
+
 void App::loop() {
   const unsigned long now = millis();
   handleSerial();

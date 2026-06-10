@@ -26,6 +26,10 @@ public:
   void begin(Settings &settings);
   void loop();
 
+  void setCommandTarget(void (*fn)(float));
+  void setCommandCalibration(void (*fn)(float));
+  void setCommandAck(void (*fn)(unsigned long));
+
   WifiState wifiState() const { return wifiState_; }
   bool wifiConnected() const { return wifiState_ == WifiState::Connected; }
   int rssi() const;
@@ -58,6 +62,9 @@ private:
   Settings *settings_ = nullptr;
   AsyncMqttClient mqtt_;
   String clientId_;
+  void (*cmdTarget_)(float) = nullptr;
+  void (*cmdCalibration_)(float) = nullptr;
+  void (*cmdAck_)(unsigned long) = nullptr;
   WifiState wifiState_ = WifiState::Disabled;
   MqttState mqttState_ = MqttState::Disabled;
   unsigned long lastWifiAttemptMs_ = 0;

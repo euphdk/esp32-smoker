@@ -5,6 +5,7 @@
 #include <Arduino.h>
 
 #include "Config.h"
+#include "HomeAssistantDiscovery.h"
 #include "Log.h"
 
 Network *Network::instance_ = nullptr;
@@ -63,6 +64,10 @@ int Network::rssi() const {
 const String &Network::baseTopic() const {
   return settings_ != nullptr ? settings_->mqttBaseTopic() : String("smoker");
 }
+
+void Network::setCommandTarget(void (*fn)(float)) { cmdTarget_ = fn; }
+void Network::setCommandCalibration(void (*fn)(float)) { cmdCalibration_ = fn; }
+void Network::setCommandAck(void (*fn)(unsigned long)) { cmdAck_ = fn; }
 
 void Network::ensureWifi() {
   if (settings_ == nullptr) return;
@@ -165,6 +170,76 @@ void Network::onMqttConnect(bool sessionPresent) {
   (void)sessionPresent;
   mqttState_ = MqttState::Connected;
   Log.println("[mqtt] connected");
+
+  const String base = baseTopic();
+  const String id = clientId_;
+
+  // Subscribe to command topics.
+  mqtt_.subscribe((base + "/" + id + "/target/set").c_str(), 0);
+  mqtt_.subscribe((base + "/" + id + "/ack/set").c_str(), 0);
+  mqtt_.subscribe((base + "/" + id + "/calibration/set").c_str(), 0);
+
+  // Publish Home Assistant discovery.
+  auto publishDiscovery = [&](const char *component, const char *objectId, JsonObject obj) {
+    char buf[1024];
+    const size_t n = serializeJson(obj, buf, sizeof(buf));
+    if (n == 0 || n >= sizeof(buf)) return;
+    const String topic = String(Config::MqttDiscoveryPrefix) + "/" + component + "/" + id + "/" + objectId + "/config";
+    mqtt_.publish(topic.c_str(), 0, true, buf, n);
+  };
+
+  {
+    JsonDocument doc;
+    HomeAssistantDiscovery::climate(doc.to<JsonObject>(), base, id);
+    publishDiscovery("climate", "climate", doc.as<JsonObject>());
+  }
+  {
+    JsonDocument doc;
+    HomeAssistantDiscovery::sensorNumber(doc.to<JsonObject>(), base, id, "Pit Temperature", "pitC", "pit");
+    publishDiscovery("sensor", "pit", doc.as<JsonObject>());
+  }
+  {
+    JsonDocument doc;
+    HomeAssistantDiscovery::sensorNumber(doc.to<JsonObject>(), base, id, "Target Temperature", "targetC", "target");
+    publishDiscovery("sensor", "target", doc.as<JsonObject>());
+  }
+  {
+    JsonDocument doc;
+    HomeAssistantDiscovery::sensorNumberCal(doc.to<JsonObject>(), base, id);
+    publishDiscovery("sensor", "cal", doc.as<JsonObject>());
+  }
+  {
+    JsonDocument doc;
+    HomeAssistantDiscovery::sensorString(doc.to<JsonObject>(), base, id, "Mode", "mode", "mode");
+    publishDiscovery("sensor", "mode", doc.as<JsonObject>());
+  }
+  {
+    JsonDocument doc;
+    HomeAssistantDiscovery::binarySensor(doc.to<JsonObject>(), base, id, "Auger", "auger", "auger");
+    publishDiscovery("binary_sensor", "auger", doc.as<JsonObject>());
+  }
+  {
+    JsonDocument doc;
+    HomeAssistantDiscovery::binarySensor(doc.to<JsonObject>(), base, id, "Fan", "fan", "fan");
+    publishDiscovery("binary_sensor", "fan", doc.as<JsonObject>());
+  }
+  {
+    JsonDocument doc;
+    HomeAssistantDiscovery::binarySensor(doc.to<JsonObject>(), base, id, "Igniter", "igniter", "igniter");
+    publishDiscovery("binary_sensor", "igniter", doc.as<JsonObject>());
+  }
+  {
+    JsonDocument doc;
+    HomeAssistantDiscovery::button(doc.to<JsonObject>(), base, id);
+    publishDiscovery("button", "ack", doc.as<JsonObject>());
+  }
+  {
+    JsonDocument doc;
+    HomeAssistantDiscovery::numberCal(doc.to<JsonObject>(), base, id);
+    publishDiscovery("number", "cal_set", doc.as<JsonObject>());
+  }
+
+  statusDirty_ = true;
 }
 
 void Network::onMqttDisconnect(AsyncMqttClientDisconnectReason reason) {
@@ -184,8 +259,45 @@ void Network::onMqttMessage(char *topic, char *payload, AsyncMqttClientMessagePr
   for (size_t i = 0; i < len; ++i) {
     p += static_cast<char>(payload[i]);
   }
+  p.trim();
   Log.printf("[mqtt] msg topic=%s payload=%s\n", t.c_str(), p.c_str());
-  // Command routing is added in the next stage.
+
+  const String base = baseTopic();
+  const String id = clientId_;
+
+  if (t == base + "/" + id + "/target/set") {
+    if (cmdTarget_ == nullptr) return;
+    char *end = nullptr;
+    const float v = strtof(p.c_str(), &end);
+    if (end == p.c_str()) {
+      Log.println("[mqtt] target/set: not a number");
+      return;
+    }
+    cmdTarget_(v);
+    return;
+  }
+
+  if (t == base + "/" + id + "/calibration/set") {
+    if (cmdCalibration_ == nullptr) return;
+    char *end = nullptr;
+    const float v = strtof(p.c_str(), &end);
+    if (end == p.c_str()) {
+      Log.println("[mqtt] calibration/set: not a number");
+      return;
+    }
+    cmdCalibration_(v);
+    return;
+  }
+
+  if (t == base + "/" + id + "/ack/set") {
+    if (cmdAck_ == nullptr) return;
+    if (p == "PRESS") {
+      cmdAck_(millis());
+    } else {
+      Log.printf("[mqtt] ack/set: unknown payload '%s'\n", p.c_str());
+    }
+    return;
+  }
 }
 
 void Network::onMqttConnectStatic(bool sessionPresent) {

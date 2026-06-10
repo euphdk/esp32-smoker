@@ -111,6 +111,12 @@ void Controller::decreaseTarget() {
   Log.printf("[control] target=%.1fC\n", status_.targetC);
 }
 
+void Controller::setTarget(float v) {
+  settings_->setTargetC(v);
+  status_.targetC = settings_->targetC();
+  Log.printf("[control] target=%.1fC\n", status_.targetC);
+}
+
 ControlStatus Controller::status() const { return status_; }
 
 unsigned long Controller::errorCooldownElapsedMs(unsigned long nowMs) const {

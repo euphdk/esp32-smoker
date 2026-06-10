@@ -15,6 +15,7 @@ public:
   void acknowledgeError(unsigned long nowMs);
   void increaseTarget();
   void decreaseTarget();
+  void setTarget(float v);
   ControlStatus status() const;
   unsigned long errorCooldownElapsedMs(unsigned long nowMs) const;
 
