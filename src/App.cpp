@@ -57,6 +57,21 @@ void App::loop() {
       ui_.drawMain(pitC, status);
     }
   }
+
+  StatusSnapshot snap;
+  snap.pitC = pitC;
+  snap.targetC = controller_.status().targetC;
+  snap.calibrationC = calC;
+  snap.mode = controller_.status().mode;
+  snap.outputs = controller_.status().outputs;
+  snap.wifiConnected = network_.wifiConnected();
+  snap.rssi = network_.rssi();
+  snap.ip = network_.ipAddress();
+  snap.errorMessage = controller_.status().errorMessage;
+  snap.clientId = network_.clientId().c_str();
+  snap.uptimeMs = now;
+  network_.publishStatus(snap);
+  network_.drainLogs(logBuffer_);
 }
 
 void App::handleTouch(unsigned long nowMs) {
