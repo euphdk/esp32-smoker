@@ -79,6 +79,7 @@ void Settings::setWifiSsid(const String &v) {
   }
   wifiSsid_ = clamped;
   dirty_ = true;
+  if (onConfigChange_) onConfigChange_();
 }
 
 void Settings::setWifiPass(const String &v) {
@@ -88,6 +89,7 @@ void Settings::setWifiPass(const String &v) {
   }
   wifiPass_ = clamped;
   dirty_ = true;
+  if (onConfigChange_) onConfigChange_();
 }
 
 void Settings::setMqttHost(const String &v) {
@@ -97,6 +99,7 @@ void Settings::setMqttHost(const String &v) {
   }
   mqttHost_ = clamped;
   dirty_ = true;
+  if (onConfigChange_) onConfigChange_();
 }
 
 void Settings::setMqttPort(uint16_t v) {
@@ -106,6 +109,7 @@ void Settings::setMqttPort(uint16_t v) {
   }
   mqttPort_ = v;
   dirty_ = true;
+  if (onConfigChange_) onConfigChange_();
 }
 
 void Settings::setMqttUser(const String &v) {
@@ -115,6 +119,7 @@ void Settings::setMqttUser(const String &v) {
   }
   mqttUser_ = clamped;
   dirty_ = true;
+  if (onConfigChange_) onConfigChange_();
 }
 
 void Settings::setMqttPass(const String &v) {
@@ -124,6 +129,7 @@ void Settings::setMqttPass(const String &v) {
   }
   mqttPass_ = clamped;
   dirty_ = true;
+  if (onConfigChange_) onConfigChange_();
 }
 
 void Settings::setMqttBaseTopic(const String &v) {

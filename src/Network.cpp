@@ -354,11 +354,15 @@ void Network::drainLogs(LogBuffer &logBuffer) {
     return;
   }
 
+  static constexpr size_t kMaxLinesPerBatch = 16;
+
   JsonDocument doc;
   JsonArray arr = doc.to<JsonArray>();
   char line[Config::LogLineMaxLen];
-  while (logBuffer.takeLine(line, sizeof(line))) {
+  size_t drained = 0;
+  while (drained < kMaxLinesPerBatch && logBuffer.takeLine(line, sizeof(line))) {
     arr.add(line);
+    ++drained;
   }
 
   char buf[2048];
@@ -368,4 +372,19 @@ void Network::drainLogs(LogBuffer &logBuffer) {
   const String topic = baseTopic() + "/" + clientId_ + "/log";
   mqtt_.publish(topic.c_str(), 0, false, buf, n);
   lastLogDrainMs_ = millis();
+}
+
+void Network::triggerReconnect() {
+  if (wifiState_ != WifiState::Disabled) {
+    WiFi.disconnect();
+    wifiState_ = WifiState::Disabled;
+    Log.println("[wifi] reconnect requested");
+  }
+  if (mqttState_ == MqttState::Connected) {
+    mqtt_.disconnect();
+  }
+  if (mqttState_ != MqttState::Disabled) {
+    mqttState_ = MqttState::Disabled;
+    Log.println("[mqtt] reconnect requested");
+  }
 }

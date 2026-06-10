@@ -34,6 +34,7 @@ public:
 
   const String &mqttBaseTopic() const { return mqttBaseTopic_; }
   void setMqttBaseTopic(const String &v);
+  void setOnConfigChange(void (*fn)()) { onConfigChange_ = fn; }
 
   void flush(unsigned long nowMs);
 
@@ -51,4 +52,5 @@ private:
   bool dirty_ = false;
   unsigned long lastWriteMs_ = 0;
   bool loaded_ = false;
+  void (*onConfigChange_)() = nullptr;
 };

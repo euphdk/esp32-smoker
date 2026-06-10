@@ -2,21 +2,22 @@
 
 #include <ESPAsyncWebServer.h>
 
-#include "Controller.h"
-#include "Network.h"
-#include "Settings.h"
 #include "StatusSnapshot.h"
 
 class WebUi {
 public:
-  void begin(Controller &controller);
+  void begin();
   void loop();
   void updateSnapshot(const StatusSnapshot &snapshot);
 
+  void setCommandHandlers(void (*setTarget)(float), void (*setCalibration)(float), void (*ackError)(unsigned long));
+
 private:
   AsyncWebServer server_{80};
-  Controller *controller_ = nullptr;
   StatusSnapshot latest_;
   bool haveSnapshot_ = false;
+  void (*cmdTarget_)(float) = nullptr;
+  void (*cmdCalibration_)(float) = nullptr;
+  void (*cmdAck_)(unsigned long) = nullptr;
 };
 

@@ -9,6 +9,9 @@ void Outputs::begin() {
   pinMode(Config::AugerPin, OUTPUT);
   pinMode(Config::FanPin, OUTPUT);
   pinMode(Config::IgniterPin, OUTPUT);
+  digitalWrite(Config::AugerPin, LOW);
+  digitalWrite(Config::FanPin, LOW);
+  digitalWrite(Config::IgniterPin, LOW);
   apply(OutputState{});
 }
 

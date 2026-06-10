@@ -4,7 +4,6 @@
 
 #include <Arduino.h>
 
-#include "App.h"
 #include "Config.h"
 #include "Log.h"
 
@@ -92,8 +91,7 @@ String renderIndex(const StatusSnapshot &s) {
 
 } // namespace
 
-void WebUi::begin(Controller &controller) {
-  controller_ = &controller;
+void WebUi::begin() {
 
   server_.on("/", HTTP_GET, [this](AsyncWebServerRequest *request) {
     if (!haveSnapshot_) {
@@ -103,7 +101,7 @@ void WebUi::begin(Controller &controller) {
     request->send(200, "text/html", renderIndex(latest_));
   });
 
-  server_.on("/set", HTTP_POST, [](AsyncWebServerRequest *request) {
+  server_.on("/set", HTTP_POST, [this](AsyncWebServerRequest *request) {
     if (!request->hasParam("target", true)) {
       request->send(400, "text/plain", "missing target");
       return;
@@ -115,11 +113,11 @@ void WebUi::begin(Controller &controller) {
       request->send(400, "text/plain", "target not a number");
       return;
     }
-    app.setTarget(f);
+    if (cmdTarget_) cmdTarget_(f);
     request->redirect("/");
   });
 
-  server_.on("/cal", HTTP_POST, [](AsyncWebServerRequest *request) {
+  server_.on("/cal", HTTP_POST, [this](AsyncWebServerRequest *request) {
     if (!request->hasParam("cal", true)) {
       request->send(400, "text/plain", "missing cal");
       return;
@@ -131,12 +129,12 @@ void WebUi::begin(Controller &controller) {
       request->send(400, "text/plain", "cal not a number");
       return;
     }
-    app.setCalibration(f);
+    if (cmdCalibration_) cmdCalibration_(f);
     request->redirect("/");
   });
 
-  server_.on("/ack", HTTP_POST, [](AsyncWebServerRequest *request) {
-    app.acknowledgeError(millis());
+  server_.on("/ack", HTTP_POST, [this](AsyncWebServerRequest *request) {
+    if (cmdAck_) cmdAck_(millis());
     request->redirect("/");
   });
 
@@ -180,4 +178,10 @@ void WebUi::loop() {
 void WebUi::updateSnapshot(const StatusSnapshot &snapshot) {
   latest_ = snapshot;
   haveSnapshot_ = true;
+}
+
+void WebUi::setCommandHandlers(void (*setTarget)(float), void (*setCalibration)(float), void (*ackError)(unsigned long)) {
+  cmdTarget_ = setTarget;
+  cmdCalibration_ = setCalibration;
+  cmdAck_ = ackError;
 }

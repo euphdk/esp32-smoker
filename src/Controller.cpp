@@ -19,13 +19,9 @@ void Controller::update(unsigned long nowMs, float pitTempC, bool sensorValid) {
 
   switch (status_.mode) {
   case SmokerMode::Idle:
-    status_.controlPercent = 0.0f;
-    status_.outputs = OutputState{};
     break;
   case SmokerMode::Startup:
     calculatePid(pitTempC, nowMs);
-    status_.outputs.fan = true;
-    status_.outputs.igniter = true;
     if (pitTempC >= status_.targetC - Config::StartupReachedDeltaC) {
       enterMode(SmokerMode::Running, nowMs);
     } else if (nowMs - modeStartedMs_ > Config::StartupTimeoutMs) {
@@ -34,29 +30,15 @@ void Controller::update(unsigned long nowMs, float pitTempC, bool sensorValid) {
     break;
   case SmokerMode::Running:
     calculatePid(pitTempC, nowMs);
-    status_.outputs.fan = true;
-    status_.outputs.igniter = false;
     break;
   case SmokerMode::Shutdown:
-    status_.controlPercent = 0.0f;
-    status_.outputs.auger = false;
-    status_.outputs.igniter = false;
-    status_.outputs.fan = nowMs - modeStartedMs_ < Config::ShutdownFanRunMs;
-    if (!status_.outputs.fan) {
+    if (nowMs - modeStartedMs_ > Config::ShutdownFanRunMs) {
       enterMode(SmokerMode::Idle, nowMs);
     }
     break;
   case SmokerMode::Error:
-    status_.controlPercent = 0.0f;
-    status_.outputs.auger = false;
-    status_.outputs.igniter = false;
-    status_.outputs.fan = true;
     break;
   case SmokerMode::ErrorCooldown:
-    status_.controlPercent = 0.0f;
-    status_.outputs.auger = false;
-    status_.outputs.igniter = false;
-    status_.outputs.fan = true;
     if (nowMs - modeStartedMs_ > Config::PostAckCooldownMs) {
       enterMode(SmokerMode::Idle, nowMs);
     }
@@ -141,6 +123,43 @@ void Controller::enterMode(SmokerMode mode, unsigned long nowMs, const char *err
   lastPitC_ = 0.0f;
   lastDTerm_ = 0.0f;
   lastPidMs_ = 0;
+
+  switch (mode) {
+  case SmokerMode::Idle:
+    status_.controlPercent = 0.0f;
+    status_.outputs = OutputState{};
+    break;
+  case SmokerMode::Startup:
+    status_.controlPercent = 0.0f;
+    status_.outputs.auger = false;
+    status_.outputs.fan = true;
+    status_.outputs.igniter = true;
+    break;
+  case SmokerMode::Running:
+    status_.controlPercent = 0.0f;
+    status_.outputs.auger = false;
+    status_.outputs.fan = true;
+    status_.outputs.igniter = false;
+    break;
+  case SmokerMode::Shutdown:
+    status_.controlPercent = 0.0f;
+    status_.outputs.auger = false;
+    status_.outputs.igniter = false;
+    status_.outputs.fan = true;
+    break;
+  case SmokerMode::Error:
+    status_.controlPercent = 0.0f;
+    status_.outputs.auger = false;
+    status_.outputs.igniter = false;
+    status_.outputs.fan = true;
+    break;
+  case SmokerMode::ErrorCooldown:
+    status_.controlPercent = 0.0f;
+    status_.outputs.auger = false;
+    status_.outputs.igniter = false;
+    status_.outputs.fan = true;
+    break;
+  }
 }
 
 void Controller::calculatePid(float pitTempC, unsigned long nowMs) {
@@ -185,6 +204,10 @@ void Controller::calculatePid(float pitTempC, unsigned long nowMs) {
 }
 
 void Controller::updateOutputs(unsigned long nowMs) {
+  if (status_.mode == SmokerMode::Shutdown) {
+    status_.outputs.fan = nowMs - modeStartedMs_ < Config::ShutdownFanRunMs;
+    return;
+  }
   if (status_.mode != SmokerMode::Startup && status_.mode != SmokerMode::Running) {
     return;
   }

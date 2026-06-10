@@ -40,6 +40,7 @@ public:
 
   void publishStatus(const StatusSnapshot &snapshot);
   void drainLogs(LogBuffer &logBuffer);
+  void triggerReconnect();
 
   const String &clientId() const { return clientId_; }
   String baseTopic() const;

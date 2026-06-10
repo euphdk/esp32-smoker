@@ -28,7 +28,6 @@ inline void addAvailability(JsonObject obj, const String &base, const String &cl
 inline void climate(JsonObject obj, const String &base, const String &clientId) {
   obj["name"] = "Pellet Smoker";
   obj["unique_id"] = clientId + "_climate";
-  obj["mode_command_topic"] = base + "/" + clientId + "/mode/set";
   obj["mode_state_topic"] = base + "/" + clientId + "/status";
   obj["mode_state_template"] = "{{ 'heat' if value_json.mode in ['Startup','Running'] else 'off' }}";
   JsonArray modes = obj["modes"].to<JsonArray>();

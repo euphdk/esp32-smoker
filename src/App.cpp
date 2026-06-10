@@ -5,6 +5,10 @@
 #include "Config.h"
 #include "Log.h"
 
+static void onConfigChangeStatic() {
+  app.triggerNetworkReconnect();
+}
+
 void App::begin() {
   Log.begin(115200);
   delay(100);
@@ -18,7 +22,15 @@ void App::begin() {
   ui_.begin();
   touch_.begin();
   network_.begin(settings_);
-  web_.begin(controller_);
+  settings_.setOnConfigChange(onConfigChangeStatic);
+
+  ui_.showBoot();
+  web_.begin();
+  setWebCommandHandlers(
+    [](float v) { app.enqueueTarget(v); },
+    [](float v) { app.enqueueCalibration(v); },
+    [](unsigned long t) { app.enqueueAck(t); }
+  );
 
   ui_.showBoot();
   delay(1200);
@@ -31,8 +43,13 @@ void App::setMqttCommandHandlers(void (*setTarget)(float), void (*setCalibration
   network_.setCommandAck(ackError);
 }
 
+void App::setWebCommandHandlers(void (*setTarget)(float), void (*setCalibration)(float), void (*ackError)(unsigned long)) {
+  web_.setCommandHandlers(setTarget, setCalibration, ackError);
+}
+
 void App::loop() {
   const unsigned long now = millis();
+  processCommands();
   handleSerial();
   handleTouch(now);
   network_.loop();
@@ -125,82 +142,138 @@ void App::handleTouch(unsigned long nowMs) {
 }
 
 void App::handleSerial() {
-  if (!Serial.available()) {
-    return;
-  }
+  while (Serial.available() > 0) {
+    const char c = static_cast<char>(Serial.read());
+    if (c == '\n' || c == '\r') {
+      if (serialBufLen_ == 0) {
+        continue;
+      }
+      serialBuf_[serialBufLen_] = '\0';
+      const String line(serialBuf_, serialBufLen_);
+      serialBufLen_ = 0;
+      if (line.length() == 0) {
+        continue;
+      }
 
-  String line = Serial.readStringUntil('\n');
-  line.trim();
-  if (line.length() == 0) {
-    return;
-  }
+      if (line.startsWith("cal=")) {
+        const char *value = line.c_str() + 4;
+        char *end = nullptr;
+        const float parsed = strtof(value, &end);
+        if (end == value) {
+          Log.println("[settings] cal= requires a numeric value, e.g. cal=1.5");
+          continue;
+        }
+        if (parsed < Config::CalibrationMinC || parsed > Config::CalibrationMaxC) {
+          Log.printf("[settings] cal=%.2f out of range [%.1f, %.1f]\n",
+                     parsed, Config::CalibrationMinC, Config::CalibrationMaxC);
+          continue;
+        }
+        settings_.setCalibrationC(parsed);
+        Log.printf("[settings] cal=%+.1fC pending save\n", settings_.calibrationC());
+        continue;
+      }
 
-  if (line.startsWith("cal=")) {
-    const char *value = line.c_str() + 4;
-    char *end = nullptr;
-    const float parsed = strtof(value, &end);
-    if (end == value) {
-      Log.println("[settings] cal= requires a numeric value, e.g. cal=1.5");
-      return;
+      if (line.startsWith("wifi_ssid=")) {
+        settings_.setWifiSsid(line.substring(10));
+        Log.printf("[settings] wifi_ssid=%s pending save\n", settings_.wifiSsid().c_str());
+        continue;
+      }
+
+      if (line.startsWith("wifi_pass=")) {
+        settings_.setWifiPass(line.substring(10));
+        Log.println("[settings] wifi_pass=*** pending save");
+        continue;
+      }
+
+      if (line.startsWith("mqtt_host=")) {
+        settings_.setMqttHost(line.substring(10));
+        Log.printf("[settings] mqtt_host=%s pending save\n", settings_.mqttHost().c_str());
+        continue;
+      }
+
+      if (line.startsWith("mqtt_port=")) {
+        const char *value = line.c_str() + 10;
+        char *end = nullptr;
+        const long parsed = strtol(value, &end, 10);
+        if (end == value || parsed < 1 || parsed > 65535) {
+          Log.println("[settings] mqtt_port= requires 1..65535");
+          continue;
+        }
+        settings_.setMqttPort(static_cast<uint16_t>(parsed));
+        Log.printf("[settings] mqtt_port=%u pending save\n", settings_.mqttPort());
+        continue;
+      }
+
+      if (line.startsWith("mqtt_user=")) {
+        settings_.setMqttUser(line.substring(10));
+        Log.printf("[settings] mqtt_user=%s pending save\n", settings_.mqttUser().c_str());
+        continue;
+      }
+
+      if (line.startsWith("mqtt_pass=")) {
+        settings_.setMqttPass(line.substring(10));
+        Log.println("[settings] mqtt_pass=*** pending save");
+        continue;
+      }
+
+      if (line.startsWith("mqtt_base=")) {
+        settings_.setMqttBaseTopic(line.substring(10));
+        Log.printf("[settings] mqtt_base=%s pending save\n", settings_.mqttBaseTopic().c_str());
+        continue;
+      }
+
+      Log.printf("[settings] unknown command: %s\n", line.c_str());
     }
-    if (parsed < Config::CalibrationMinC || parsed > Config::CalibrationMaxC) {
-      Log.printf("[settings] cal=%.2f out of range [%.1f, %.1f]\n",
-                 parsed, Config::CalibrationMinC, Config::CalibrationMaxC);
-      return;
+
+    if (serialBufLen_ < kSerialBufSize - 1) {
+      serialBuf_[serialBufLen_++] = c;
     }
-    settings_.setCalibrationC(parsed);
-    Log.printf("[settings] cal=%+.1fC pending save\n", settings_.calibrationC());
-    return;
   }
+}
 
-  if (line.startsWith("wifi_ssid=")) {
-    settings_.setWifiSsid(line.substring(10));
-    Log.printf("[settings] wifi_ssid=%s pending save\n", settings_.wifiSsid().c_str());
-    return;
-  }
-
-  if (line.startsWith("wifi_pass=")) {
-    settings_.setWifiPass(line.substring(10));
-    Log.println("[settings] wifi_pass=*** pending save");
-    return;
-  }
-
-  if (line.startsWith("mqtt_host=")) {
-    settings_.setMqttHost(line.substring(10));
-    Log.printf("[settings] mqtt_host=%s pending save\n", settings_.mqttHost().c_str());
-    return;
-  }
-
-  if (line.startsWith("mqtt_port=")) {
-    const char *value = line.c_str() + 10;
-    char *end = nullptr;
-    const long parsed = strtol(value, &end, 10);
-    if (end == value || parsed < 1 || parsed > 65535) {
-      Log.println("[settings] mqtt_port= requires 1..65535");
-      return;
+void App::processCommands() {
+  while (cmdHead_ != cmdTail_) {
+    const PendingCmd &cmd = cmdQueue_[cmdTail_];
+    switch (cmd.type) {
+    case CmdType::SetTarget:
+      controller_.setTarget(cmd.value);
+      break;
+    case CmdType::SetCalibration:
+      settings_.setCalibrationC(cmd.value);
+      break;
+    case CmdType::AckError:
+      controller_.acknowledgeError(cmd.ackTime);
+      break;
+    case CmdType::None:
+      break;
     }
-    settings_.setMqttPort(static_cast<uint16_t>(parsed));
-    Log.printf("[settings] mqtt_port=%u pending save\n", settings_.mqttPort());
-    return;
+    cmdTail_ = (cmdTail_ + 1) % kCmdQueueSize;
   }
+}
 
-  if (line.startsWith("mqtt_user=")) {
-    settings_.setMqttUser(line.substring(10));
-    Log.printf("[settings] mqtt_user=%s pending save\n", settings_.mqttUser().c_str());
-    return;
-  }
+void App::enqueueTarget(float v) {
+  const size_t next = (cmdHead_ + 1) % kCmdQueueSize;
+  if (next == cmdTail_) return;
+  cmdQueue_[cmdHead_].type = CmdType::SetTarget;
+  cmdQueue_[cmdHead_].value = v;
+  cmdQueue_[cmdHead_].ackTime = 0;
+  cmdHead_ = next;
+}
 
-  if (line.startsWith("mqtt_pass=")) {
-    settings_.setMqttPass(line.substring(10));
-    Log.println("[settings] mqtt_pass=*** pending save");
-    return;
-  }
+void App::enqueueCalibration(float v) {
+  const size_t next = (cmdHead_ + 1) % kCmdQueueSize;
+  if (next == cmdTail_) return;
+  cmdQueue_[cmdHead_].type = CmdType::SetCalibration;
+  cmdQueue_[cmdHead_].value = v;
+  cmdQueue_[cmdHead_].ackTime = 0;
+  cmdHead_ = next;
+}
 
-  if (line.startsWith("mqtt_base=")) {
-    settings_.setMqttBaseTopic(line.substring(10));
-    Log.printf("[settings] mqtt_base=%s pending save\n", settings_.mqttBaseTopic().c_str());
-    return;
-  }
-
-  Log.printf("[settings] unknown command: %s\n", line.c_str());
+void App::enqueueAck(unsigned long nowMs) {
+  const size_t next = (cmdHead_ + 1) % kCmdQueueSize;
+  if (next == cmdTail_) return;
+  cmdQueue_[cmdHead_].type = CmdType::AckError;
+  cmdQueue_[cmdHead_].value = 0.0f;
+  cmdQueue_[cmdHead_].ackTime = nowMs;
+  cmdHead_ = next;
 }

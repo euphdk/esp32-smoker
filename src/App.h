@@ -16,12 +16,23 @@ public:
   void loop();
 
   void setMqttCommandHandlers(void (*setTarget)(float), void (*setCalibration)(float), void (*ackError)(unsigned long));
+  void setWebCommandHandlers(void (*setTarget)(float), void (*setCalibration)(float), void (*ackError)(unsigned long));
 
-  void setTarget(float v) { controller_.setTarget(v); }
-  void setCalibration(float v) { settings_.setCalibrationC(v); }
-  void acknowledgeError(unsigned long nowMs) { controller_.acknowledgeError(nowMs); }
+  void enqueueTarget(float v);
+  void enqueueCalibration(float v);
+  void enqueueAck(unsigned long nowMs);
+  void triggerNetworkReconnect() { network_.triggerReconnect(); }
 
 private:
+  enum class CmdType { None, SetTarget, SetCalibration, AckError };
+  struct PendingCmd {
+    CmdType type = CmdType::None;
+    float value = 0.0f;
+    unsigned long ackTime = 0;
+  };
+
+  void processCommands();
+
   LogBuffer logBuffer_;
   Settings settings_;
   Ui ui_;
@@ -31,6 +42,15 @@ private:
   Outputs outputs_;
   Network network_;
   WebUi web_;
+
+  static constexpr size_t kCmdQueueSize = 4;
+  PendingCmd cmdQueue_[kCmdQueueSize];
+  size_t cmdHead_ = 0;
+  size_t cmdTail_ = 0;
+
+  static constexpr size_t kSerialBufSize = 64;
+  char serialBuf_[kSerialBufSize];
+  size_t serialBufLen_ = 0;
 
   unsigned long lastSensorMs_ = 0;
   unsigned long lastControlMs_ = 0;

@@ -40,7 +40,6 @@ constexpr uint32_t SensorUpdateMs = 1000;
 constexpr uint32_t LogUpdateMs = 5000;
 
 constexpr uint32_t AugerCycleMs = 10000;
-constexpr float ProportionalGain = 3.0f;
 constexpr float MinRunningAugerPercent = 5.0f;
 constexpr float MaxAugerPercent = 100.0f;
 
