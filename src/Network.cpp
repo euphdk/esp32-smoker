@@ -55,8 +55,11 @@ int Network::rssi() const {
   return 0;
 }
 
-const String &Network::baseTopic() const {
-  return settings_ != nullptr ? settings_->mqttBaseTopic() : String("smoker");
+String Network::baseTopic() const {
+  if (settings_ != nullptr) {
+    return settings_->mqttBaseTopic();
+  }
+  return String("smoker");
 }
 
 void Network::setCommandTarget(void (*fn)(float)) { cmdTarget_ = fn; }

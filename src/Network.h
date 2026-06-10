@@ -42,7 +42,7 @@ public:
   void drainLogs(LogBuffer &logBuffer);
 
   const String &clientId() const { return clientId_; }
-  const String &baseTopic() const;
+  String baseTopic() const;
 
 private:
   void ensureWifi();
