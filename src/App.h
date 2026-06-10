@@ -8,6 +8,7 @@
 #include "SimulatedTemperatureSensor.h"
 #include "TouchInput.h"
 #include "Ui.h"
+#include "WebUi.h"
 
 class App {
 public:
@@ -29,6 +30,7 @@ private:
   Controller controller_;
   Outputs outputs_;
   Network network_;
+  WebUi web_;
 
   unsigned long lastSensorMs_ = 0;
   unsigned long lastControlMs_ = 0;
@@ -37,3 +39,5 @@ private:
   void handleTouch(unsigned long nowMs);
   void handleSerial();
 };
+
+extern App app;

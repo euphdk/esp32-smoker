@@ -18,6 +18,7 @@ void App::begin() {
   ui_.begin();
   touch_.begin();
   network_.begin(settings_);
+  web_.begin(settings_, network_, controller_);
 
   ui_.showBoot();
   delay(1200);
@@ -77,6 +78,7 @@ void App::loop() {
   snap.clientId = network_.clientId().c_str();
   snap.uptimeMs = now;
   network_.publishStatus(snap);
+  web_.updateSnapshot(snap);
   network_.drainLogs(logBuffer_);
 }
 
