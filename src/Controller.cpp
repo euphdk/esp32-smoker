@@ -138,7 +138,6 @@ void Controller::enterMode(SmokerMode mode, unsigned long nowMs, const char *err
   status_.errorMessage = errorMessage;
   modeStartedMs_ = nowMs;
   integralC_ = 0.0f;
-  lastErrorC_ = 0.0f;
   lastPitC_ = 0.0f;
   lastDTerm_ = 0.0f;
   lastPidMs_ = 0;
@@ -180,7 +179,6 @@ void Controller::calculatePid(float pitTempC, unsigned long nowMs) {
   }
 
   status_.controlPercent = output;
-  lastErrorC_ = errorC;
   lastPitC_ = pitTempC;
   lastDTerm_ = dTerm;
   lastPidMs_ = nowMs;

@@ -23,7 +23,6 @@ h1{font-size:1.4em;margin:0 0 8px}
 .row{display:flex;justify-content:space-between;padding:2px 0}
 .label{color:#666}
 .value{font-weight:600}
-.fault{border-color:#c33;background:#fee}
 form{margin:8px 0}
 input[type=number]{width:6em;padding:4px}
 button{padding:6px 12px;margin-left:8px;cursor:pointer}
@@ -93,9 +92,7 @@ String renderIndex(const StatusSnapshot &s) {
 
 } // namespace
 
-void WebUi::begin(Settings &settings, Network &network, Controller &controller) {
-  settings_ = &settings;
-  network_ = &network;
+void WebUi::begin(Controller &controller) {
   controller_ = &controller;
 
   server_.on("/", HTTP_GET, [this](AsyncWebServerRequest *request) {

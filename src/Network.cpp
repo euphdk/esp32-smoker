@@ -46,12 +46,6 @@ void Network::begin(Settings &settings) {
 void Network::loop() {
   ensureWifi();
   ensureMqtt();
-
-  if (statusDirty_ && mqttState_ == MqttState::Connected) {
-    if (millis() - lastStatusPublishMs_ >= Config::StatusPublishMinIntervalMs) {
-      // Drain will be re-called with new state from App; we just need a ticker.
-    }
-  }
 }
 
 int Network::rssi() const {
@@ -238,8 +232,6 @@ void Network::onMqttConnect(bool sessionPresent) {
     HomeAssistantDiscovery::numberCal(doc.to<JsonObject>(), base, id);
     publishDiscovery("number", "cal_set", doc.as<JsonObject>());
   }
-
-  statusDirty_ = true;
 }
 
 void Network::onMqttDisconnect(AsyncMqttClientDisconnectReason reason) {
@@ -315,11 +307,9 @@ void Network::onMqttMessageStatic(char *topic, char *payload, AsyncMqttClientMes
 
 void Network::publishStatus(const StatusSnapshot &snapshot) {
   if (mqttState_ != MqttState::Connected) {
-    statusDirty_ = true;
     return;
   }
   if (millis() - lastStatusPublishMs_ < Config::StatusPublishMinIntervalMs) {
-    statusDirty_ = true;
     return;
   }
 
@@ -346,7 +336,6 @@ void Network::publishStatus(const StatusSnapshot &snapshot) {
   const String topic = baseTopic() + "/" + clientId_ + "/status";
   mqtt_.publish(topic.c_str(), 0, true, buf, n);
 
-  statusDirty_ = false;
   lastStatusPublishMs_ = millis();
 }
 

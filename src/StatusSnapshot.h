@@ -12,6 +12,5 @@ struct StatusSnapshot {
   int rssi = 0;
   const char *ip = "";
   const char *errorMessage = nullptr;
-  const char *clientId = "";
   unsigned long uptimeMs = 0;
 };

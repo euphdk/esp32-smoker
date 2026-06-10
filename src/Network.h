@@ -71,7 +71,6 @@ private:
   unsigned long lastMqttAttemptMs_ = 0;
   unsigned long lastStatusPublishMs_ = 0;
   unsigned long lastLogDrainMs_ = 0;
-  bool statusDirty_ = false;
   char ipBuf_[16] = "0.0.0.0";
   static Network *instance_;
 };

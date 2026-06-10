@@ -25,7 +25,6 @@ private:
   unsigned long modeStartedMs_ = 0;
   unsigned long lastControlLogMs_ = 0;
   float integralC_ = 0.0f;
-  float lastErrorC_ = 0.0f;
   float lastPitC_ = 0.0f;
   float lastDTerm_ = 0.0f;
   unsigned long lastPidMs_ = 0;
