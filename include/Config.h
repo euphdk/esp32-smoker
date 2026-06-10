@@ -49,4 +49,8 @@ constexpr float PidKi = 0.05f;
 constexpr float PidKd = 0.5f;
 constexpr float PidKiMax = 50.0f;
 
+constexpr float CalibrationMinC = -20.0f;
+constexpr float CalibrationMaxC = 20.0f;
+constexpr uint32_t SettingsFlushMs = 5000;
+
 } // namespace Config

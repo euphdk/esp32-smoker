@@ -2,9 +2,13 @@
 
 #include "Types.h"
 
+class Settings;
+
 class Controller {
 public:
-  void begin();
+  Controller() = default;
+  void begin(Settings &settings);
+
   void update(unsigned long nowMs, float pitTempC, bool sensorValid);
   void start(unsigned long nowMs);
   void stop(unsigned long nowMs);
@@ -15,6 +19,7 @@ public:
   unsigned long errorCooldownElapsedMs(unsigned long nowMs) const;
 
 private:
+  Settings *settings_ = nullptr;
   ControlStatus status_;
   unsigned long modeStartedMs_ = 0;
   unsigned long lastControlLogMs_ = 0;

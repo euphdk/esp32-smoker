@@ -2,6 +2,7 @@
 
 #include "Controller.h"
 #include "Outputs.h"
+#include "Settings.h"
 #include "SimulatedTemperatureSensor.h"
 #include "TouchInput.h"
 #include "Ui.h"
@@ -12,6 +13,7 @@ public:
   void loop();
 
 private:
+  Settings settings_;
   Ui ui_;
   TouchInput touch_;
   SimulatedTemperatureSensor sensor_;
@@ -23,4 +25,5 @@ private:
   unsigned long lastUiMs_ = 0;
 
   void handleTouch(unsigned long nowMs);
+  void handleSerial();
 };

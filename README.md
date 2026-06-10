@@ -14,6 +14,7 @@ This is not a production-safe appliance controller. It demonstrates a touchscree
 - Non-blocking `millis()` based scheduling.
 - State machine: Idle, Startup, Running, Shutdown, Error, ErrorCooldown.
 - PID control (Kp/Ki/Kd with anti-windup) mapped to time-based auger duty cycle.
+- Persistent target temperature and calibration offset stored in NVS via ESP32 `Preferences`. NVS writes are throttled to once every 5 s when dirty.
 - Safety placeholders for invalid sensor readings, startup timeout, and forced operator acknowledgement of faults.
 - Serial logging for state changes, temperature updates, control output, and output changes.
 
@@ -50,6 +51,24 @@ On the fault screen (Error or ErrorCooldown):
 
 Temperatures are displayed in Celsius.
 
+## Persistent Settings
+
+Stored in the ESP32 NVS under namespace `smoker`:
+
+| Key | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `targetC` | float | `Config::InitialTargetC` (107) | Last operator-set target. Updated automatically by the +/- buttons. Clamped to `Config::MinTargetC`..`Config::MaxTargetC`. |
+| `calC` | float | 0.0 | Calibration offset in °C, applied as `pitC_raw + calC` before display and control. Clamped to `Config::CalibrationMinC`..`Config::CalibrationMaxC` (±20). |
+
+Writes are throttled to once per 5 s when a value has changed. To clear the values back to defaults, erase the `smoker` namespace with `pio run --target erase` followed by a fresh flash, or use the Arduino ESP32 NVS partition tool.
+
+## Serial Commands
+
+Open the serial monitor at 115200 baud. Calibration is the only operator-tunable value without an on-screen control:
+
+- `cal=<float>`: Set the calibration offset in °C (e.g. `cal=1.5`, `cal=-0.5`). Range ±20 °C. Out-of-range or non-numeric values are rejected with a log line.
+- Anything else is logged as `unknown command: ...` and ignored.
+
 ## Build And Upload
 
 Install PlatformIO, then run:
@@ -70,5 +89,6 @@ The default environment is `esp32-s3-cyd`.
 - `src/TouchInput.*`: Touchscreen polling and calibration mapping.
 - `src/TemperatureSensor.h`: Sensor interface.
 - `src/SimulatedTemperatureSensor.*`: Simulated pit temperature model.
+- `src/Settings.*`: NVS-backed persistent settings (target, calibration).
 - `src/Controller.*`: State machine and simple control logic.
 - `src/Outputs.*`: GPIO output abstraction for simulated auger/fan/igniter.

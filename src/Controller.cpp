@@ -3,9 +3,11 @@
 #include <Arduino.h>
 
 #include "Config.h"
+#include "Settings.h"
 
-void Controller::begin() {
-  status_.targetC = Config::InitialTargetC;
+void Controller::begin(Settings &settings) {
+  settings_ = &settings;
+  status_.targetC = settings_->targetC();
   enterMode(SmokerMode::Idle, millis());
 }
 
@@ -97,12 +99,14 @@ void Controller::acknowledgeError(unsigned long nowMs) {
 }
 
 void Controller::increaseTarget() {
-  status_.targetC = min(Config::MaxTargetC, status_.targetC + Config::TargetStepC);
+  settings_->setTargetC(status_.targetC + Config::TargetStepC);
+  status_.targetC = settings_->targetC();
   Serial.printf("[control] target=%.1fC\n", status_.targetC);
 }
 
 void Controller::decreaseTarget() {
-  status_.targetC = max(Config::MinTargetC, status_.targetC - Config::TargetStepC);
+  settings_->setTargetC(status_.targetC - Config::TargetStepC);
+  status_.targetC = settings_->targetC();
   Serial.printf("[control] target=%.1fC\n", status_.targetC);
 }
 
