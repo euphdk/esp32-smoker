@@ -8,6 +8,7 @@
 void App::begin() {
   Log.begin(115200);
   delay(100);
+  logBuffer_.begin();
   Log.printf("\n[boot] %s firmware %s\n", Config::ProjectName, Config::FirmwareVersion);
 
   settings_.begin();

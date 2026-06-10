@@ -53,4 +53,7 @@ constexpr float CalibrationMinC = -20.0f;
 constexpr float CalibrationMaxC = 20.0f;
 constexpr uint32_t SettingsFlushMs = 5000;
 
+constexpr uint16_t LogRingCapacity = 64;
+constexpr uint16_t LogLineMaxLen = 96;
+
 } // namespace Config

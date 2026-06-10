@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Controller.h"
+#include "LogBuffer.h"
 #include "Outputs.h"
 #include "Settings.h"
 #include "SimulatedTemperatureSensor.h"
@@ -13,6 +14,7 @@ public:
   void loop();
 
 private:
+  LogBuffer logBuffer_;
   Settings settings_;
   Ui ui_;
   TouchInput touch_;
