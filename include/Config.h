@@ -32,6 +32,7 @@ constexpr float InvalidHighC = 350.0f;
 constexpr float StartupReachedDeltaC = 15.0f;
 constexpr uint32_t StartupTimeoutMs = 15UL * 60UL * 1000UL;
 constexpr uint32_t ShutdownFanRunMs = 2UL * 60UL * 1000UL;
+constexpr uint32_t PostAckCooldownMs = 30UL * 1000UL;
 
 constexpr uint32_t UiUpdateMs = 500;
 constexpr uint32_t ControlUpdateMs = 1000;

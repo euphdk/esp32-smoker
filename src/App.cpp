@@ -40,7 +40,12 @@ void App::loop() {
 
   if (now - lastUiMs_ >= Config::UiUpdateMs) {
     lastUiMs_ = now;
-    ui_.drawMain(sensor_.currentC(), controller_.status());
+    const ControlStatus status = controller_.status();
+    if (status.mode == SmokerMode::Error || status.mode == SmokerMode::ErrorCooldown) {
+      ui_.drawError(sensor_.currentC(), status, controller_.errorCooldownElapsedMs(now));
+    } else {
+      ui_.drawMain(sensor_.currentC(), status);
+    }
   }
 }
 
@@ -51,24 +56,37 @@ void App::handleTouch(unsigned long nowMs) {
     return;
   }
 
-  switch (ui_.actionForPoint(x, y)) {
+  const SmokerMode mode = controller_.status().mode;
+  const bool inFault = mode == SmokerMode::Error || mode == SmokerMode::ErrorCooldown;
+  const UiAction action = ui_.actionForPoint(x, y);
+
+  if (action == UiAction::AcknowledgeError) {
+    if (mode == SmokerMode::Error) {
+      controller_.acknowledgeError(nowMs);
+      ui_.drawError(sensor_.currentC(), controller_.status(), 0, true);
+    }
+    return;
+  }
+
+  if (inFault || action == UiAction::None) {
+    return;
+  }
+
+  switch (action) {
   case UiAction::IncreaseTarget:
     controller_.increaseTarget();
-    ui_.drawMain(sensor_.currentC(), controller_.status(), true);
     break;
   case UiAction::DecreaseTarget:
     controller_.decreaseTarget();
-    ui_.drawMain(sensor_.currentC(), controller_.status(), true);
     break;
   case UiAction::Start:
     controller_.start(nowMs);
-    ui_.drawMain(sensor_.currentC(), controller_.status(), true);
     break;
   case UiAction::Stop:
     controller_.stop(nowMs);
-    ui_.drawMain(sensor_.currentC(), controller_.status(), true);
     break;
-  case UiAction::None:
-    break;
+  default:
+    return;
   }
+  ui_.drawMain(sensor_.currentC(), controller_.status(), true);
 }

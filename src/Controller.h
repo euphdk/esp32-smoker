@@ -8,9 +8,11 @@ public:
   void update(unsigned long nowMs, float pitTempC, bool sensorValid);
   void start(unsigned long nowMs);
   void stop(unsigned long nowMs);
+  void acknowledgeError(unsigned long nowMs);
   void increaseTarget();
   void decreaseTarget();
   ControlStatus status() const;
+  unsigned long errorCooldownElapsedMs(unsigned long nowMs) const;
 
 private:
   ControlStatus status_;

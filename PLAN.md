@@ -18,5 +18,5 @@
 3. Add a real temperature sensor implementation, likely MAX31865/PT100, MAX31855/MAX6675 thermocouple, or analog thermistor depending on hardware.
 4. ~~Replace simple proportional control with a tunable PID implementation.~~ Done: `Controller::calculatePid` with Kp/Ki/Kd and `PidKiMax` anti-windup clamp; derivative on `-dPit/dt` to avoid setpoint kick; PID state reset on every mode transition; P/I/D terms logged on the `[control]` line. Constants live in `include/Config.h` and must be tuned on real hardware.
 5. Add persistent settings for target temperature and calibration.
-6. Add explicit fault screens and operator acknowledgement flow.
+6. ~~Add explicit fault screens and operator acknowledgement flow.~~ Done: new `SmokerMode::ErrorCooldown` state entered via `Controller::acknowledgeError`; full red `Ui::drawError` screen with FAULT header, error message, output state, current pit temp, and a single "Acknowledge & Reset" button; 30 s post-ack fan cooldown (configurable via `Config::PostAckCooldownMs`); Stop is blocked in Error and ErrorCooldown so only the Ack button can clear a fault; every `fail()` call now logs (rate-limited by the existing 5 s log throttle) instead of only on first entry; all other touch input is suppressed in fault.
 7. Add production safety review before any real auger, fan, igniter, relay, SSR, or mains-voltage integration.

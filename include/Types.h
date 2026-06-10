@@ -6,6 +6,7 @@ enum class SmokerMode {
   Running,
   Shutdown,
   Error,
+  ErrorCooldown,
 };
 
 struct OutputState {

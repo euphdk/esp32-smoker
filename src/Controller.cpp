@@ -49,6 +49,15 @@ void Controller::update(unsigned long nowMs, float pitTempC, bool sensorValid) {
     status_.outputs.igniter = false;
     status_.outputs.fan = true;
     break;
+  case SmokerMode::ErrorCooldown:
+    status_.controlPercent = 0.0f;
+    status_.outputs.auger = false;
+    status_.outputs.igniter = false;
+    status_.outputs.fan = true;
+    if (nowMs - modeStartedMs_ > Config::PostAckCooldownMs) {
+      enterMode(SmokerMode::Idle, nowMs);
+    }
+    break;
   }
 
   updateOutputs(nowMs);
@@ -70,9 +79,21 @@ void Controller::start(unsigned long nowMs) {
 }
 
 void Controller::stop(unsigned long nowMs) {
+  if (status_.mode == SmokerMode::Error || status_.mode == SmokerMode::ErrorCooldown) {
+    return;
+  }
   if (status_.mode != SmokerMode::Idle) {
     enterMode(SmokerMode::Shutdown, nowMs);
   }
+}
+
+void Controller::acknowledgeError(unsigned long nowMs) {
+  if (status_.mode != SmokerMode::Error) {
+    return;
+  }
+  status_.errorMessage = nullptr;
+  Serial.println("[state] Error -> ErrorCooldown (acknowledged)");
+  enterMode(SmokerMode::ErrorCooldown, nowMs);
 }
 
 void Controller::increaseTarget() {
@@ -86,6 +107,16 @@ void Controller::decreaseTarget() {
 }
 
 ControlStatus Controller::status() const { return status_; }
+
+unsigned long Controller::errorCooldownElapsedMs(unsigned long nowMs) const {
+  if (status_.mode != SmokerMode::ErrorCooldown) {
+    return 0;
+  }
+  if (nowMs < modeStartedMs_) {
+    return 0;
+  }
+  return nowMs - modeStartedMs_;
+}
 
 void Controller::enterMode(SmokerMode mode, unsigned long nowMs, const char *errorMessage) {
   if (status_.mode != mode) {
@@ -155,8 +186,8 @@ void Controller::updateOutputs(unsigned long nowMs) {
 }
 
 void Controller::fail(unsigned long nowMs, const char *message) {
+  Serial.printf("[error] %s\n", message);
   if (status_.mode != SmokerMode::Error) {
-    Serial.printf("[error] %s\n", message);
     enterMode(SmokerMode::Error, nowMs, message);
   }
 }

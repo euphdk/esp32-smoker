@@ -8,12 +8,13 @@ This is not a production-safe appliance controller. It demonstrates a touchscree
 
 - Boot screen with project name and firmware version.
 - Main screen showing current pit temperature, target temperature, output states, and mode.
+- Fault screen with a single "Acknowledge & Reset" button, entered automatically from Error. Stop is suppressed while in fault.
 - Touch controls for target temperature up/down, start cook, and stop/shutdown.
 - Simulated temperature source structured behind a sensor interface.
 - Non-blocking `millis()` based scheduling.
-- Basic state machine: Idle, Startup, Running, Shutdown, Error.
-- Simple proportional control mapped to time-based auger duty cycle.
-- Safety placeholders for invalid sensor readings and startup timeout.
+- State machine: Idle, Startup, Running, Shutdown, Error, ErrorCooldown.
+- PID control (Kp/Ki/Kd with anti-windup) mapped to time-based auger duty cycle.
+- Safety placeholders for invalid sensor readings, startup timeout, and forced operator acknowledgement of faults.
 - Serial logging for state changes, temperature updates, control output, and output changes.
 
 ## Hardware Assumptions
@@ -36,10 +37,16 @@ Do not connect these directly to mains-voltage equipment. Future relay/SSR integ
 
 ## Touch Controls
 
+On the main screen:
+
 - `+`: Increase target temperature by 5 C.
 - `-`: Decrease target temperature by 5 C.
 - `Start`: Enter startup mode.
 - `Stop`: Enter shutdown mode.
+
+On the fault screen (Error or ErrorCooldown):
+
+- `Acknowledge & Reset`: Clear the fault and start a 30 s fan cooldown. The Stop button is suppressed in fault; only this button can clear it.
 
 Temperatures are displayed in Celsius.
 

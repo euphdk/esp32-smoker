@@ -12,6 +12,8 @@ const char *modeToString(SmokerMode mode) {
     return "Shutdown";
   case SmokerMode::Error:
     return "Error";
+  case SmokerMode::ErrorCooldown:
+    return "Cooldown";
   }
 
   return "Unknown";

@@ -13,6 +13,10 @@ constexpr int16_t ButtonH = 42;
 constexpr int16_t StartX = 12;
 constexpr int16_t StopX = 128;
 constexpr int16_t StartStopY = 264;
+constexpr int16_t AckX = 12;
+constexpr int16_t AckY = 240;
+constexpr int16_t AckW = 216;
+constexpr int16_t AckH = 60;
 } // namespace
 
 void Ui::begin() {
@@ -68,11 +72,6 @@ void Ui::drawMain(float pitTempC, const ControlStatus &status, bool force) {
 
   drawButton(StartX, StartStopY, ButtonW, ButtonH, "Start", TFT_DARKGREEN);
   drawButton(StopX, StartStopY, ButtonW, ButtonH, "Stop", TFT_MAROON);
-
-  if (status.errorMessage != nullptr) {
-    tft_.setTextColor(TFT_RED, TFT_BLACK);
-    tft_.drawString(status.errorMessage, 10, 308, 2);
-  }
 }
 
 UiAction Ui::actionForPoint(int16_t x, int16_t y) const {
@@ -94,6 +93,12 @@ UiAction Ui::actionForPoint(int16_t x, int16_t y) const {
     }
   }
 
+  if (y >= AckY && y <= AckY + AckH) {
+    if (x >= AckX && x <= AckX + AckW) {
+      return UiAction::AcknowledgeError;
+    }
+  }
+
   return UiAction::None;
 }
 
@@ -112,6 +117,52 @@ void Ui::drawStatusLine(int16_t y, const char *label, const char *value, uint16_
   tft_.drawString(label, 10, y, 2);
   tft_.setTextColor(valueColor, TFT_BLACK);
   tft_.drawString(value, 96, y, 4);
+}
+
+void Ui::drawError(float pitTempC, const ControlStatus &status, unsigned long cooldownElapsedMs, bool force) {
+  const unsigned long elapsedSec = cooldownElapsedMs / 1000UL;
+  const bool tickChanged = lastErrorDrawMs_ / 1000UL != elapsedSec;
+  const bool changed = force || lastErrorMode_ != status.mode ||
+                       abs(lastErrorPitC_ - pitTempC) >= 0.1f ||
+                       lastErrorMessage_ != status.errorMessage ||
+                       (status.mode == SmokerMode::ErrorCooldown && tickChanged);
+  if (!changed) {
+    return;
+  }
+
+  lastErrorMode_ = status.mode;
+  lastErrorPitC_ = pitTempC;
+  lastErrorMessage_ = status.errorMessage;
+  lastErrorDrawMs_ = cooldownElapsedMs;
+
+  tft_.fillScreen(TFT_RED);
+  tft_.setTextDatum(MC_DATUM);
+  tft_.setTextColor(TFT_WHITE, TFT_RED);
+  tft_.drawString("FAULT", Config::ScreenWidth / 2, 36, 4);
+
+  tft_.setTextDatum(TL_DATUM);
+  if (status.errorMessage != nullptr) {
+    tft_.drawString(status.errorMessage, 12, 78, 2);
+  }
+
+  tft_.drawString("Outputs", 12, 112, 2);
+  tft_.drawString(status.outputs.auger ? "Auger ON" : "Auger OFF", 12, 132, 2);
+  tft_.drawString(status.outputs.fan ? "Fan ON" : "Fan OFF", 120, 132, 2);
+  tft_.drawString(status.outputs.igniter ? "Ign ON" : "Ign OFF", 12, 152, 2);
+
+  char pitBuf[24];
+  snprintf(pitBuf, sizeof(pitBuf), "Pit: %.1f C", pitTempC);
+  tft_.drawString(pitBuf, 12, 182, 2);
+
+  if (status.mode == SmokerMode::ErrorCooldown) {
+    char cdBuf[24];
+    const unsigned long totalSec = Config::PostAckCooldownMs / 1000UL;
+    const unsigned long remaining = (elapsedSec < totalSec) ? (totalSec - elapsedSec) : 0UL;
+    snprintf(cdBuf, sizeof(cdBuf), "Cooldown %lus left", remaining);
+    tft_.drawString(cdBuf, 12, 204, 2);
+  }
+
+  drawButton(AckX, AckY, AckW, AckH, "Acknowledge & Reset", TFT_DARKGREY);
 }
 
 void Ui::drawOutputState(int16_t y, const char *label, bool on) {
