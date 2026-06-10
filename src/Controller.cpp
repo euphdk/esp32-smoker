@@ -20,7 +20,7 @@ void Controller::update(unsigned long nowMs, float pitTempC, bool sensorValid) {
     status_.outputs = OutputState{};
     break;
   case SmokerMode::Startup:
-    calculateControl(pitTempC);
+    calculatePid(pitTempC, nowMs);
     status_.outputs.fan = true;
     status_.outputs.igniter = true;
     if (pitTempC >= status_.targetC - Config::StartupReachedDeltaC) {
@@ -30,7 +30,7 @@ void Controller::update(unsigned long nowMs, float pitTempC, bool sensorValid) {
     }
     break;
   case SmokerMode::Running:
-    calculateControl(pitTempC);
+    calculatePid(pitTempC, nowMs);
     status_.outputs.fan = true;
     status_.outputs.igniter = false;
     break;
@@ -55,8 +55,10 @@ void Controller::update(unsigned long nowMs, float pitTempC, bool sensorValid) {
 
   if (nowMs - lastControlLogMs_ >= Config::LogUpdateMs) {
     lastControlLogMs_ = nowMs;
-    Serial.printf("[control] mode=%s pit=%.1fC target=%.1fC output=%.1f%% auger=%d fan=%d igniter=%d\n",
+    const float pTerm = Config::PidKp * (status_.targetC - pitTempC);
+    Serial.printf("[control] mode=%s pit=%.1fC target=%.1fC output=%.1f%% p=%.1f i=%.1f d=%.1f auger=%d fan=%d igniter=%d\n",
                   modeToString(status_.mode), pitTempC, status_.targetC, status_.controlPercent,
+                  pTerm, integralC_, lastDTerm_,
                   status_.outputs.auger, status_.outputs.fan, status_.outputs.igniter);
   }
 }
@@ -93,17 +95,53 @@ void Controller::enterMode(SmokerMode mode, unsigned long nowMs, const char *err
   status_.mode = mode;
   status_.errorMessage = errorMessage;
   modeStartedMs_ = nowMs;
+  integralC_ = 0.0f;
+  lastErrorC_ = 0.0f;
+  lastPitC_ = 0.0f;
+  lastDTerm_ = 0.0f;
+  lastPidMs_ = 0;
 }
 
-void Controller::calculateControl(float pitTempC) {
+void Controller::calculatePid(float pitTempC, unsigned long nowMs) {
+  if (lastPidMs_ == 0) {
+    lastPitC_ = pitTempC;
+    lastPidMs_ = nowMs;
+    return;
+  }
+
+  float dt = static_cast<float>(nowMs - lastPidMs_) / 1000.0f;
+  if (dt <= 0.0f) {
+    return;
+  }
+
   const float errorC = status_.targetC - pitTempC;
-  float output = errorC * Config::ProportionalGain;
+  const float pTerm = Config::PidKp * errorC;
+
+  integralC_ += Config::PidKi * errorC * dt;
+  integralC_ = constrain(integralC_, -Config::PidKiMax, Config::PidKiMax);
+
+  const float dTerm = -Config::PidKd * (pitTempC - lastPitC_) / dt;
+  float output = pTerm + integralC_ + dTerm;
+
+  if (output > Config::MaxAugerPercent) {
+    output = Config::MaxAugerPercent;
+    integralC_ -= Config::PidKi * errorC * dt;
+    integralC_ = constrain(integralC_, -Config::PidKiMax, Config::PidKiMax);
+  } else if (output < 0.0f) {
+    output = 0.0f;
+    integralC_ -= Config::PidKi * errorC * dt;
+    integralC_ = constrain(integralC_, -Config::PidKiMax, Config::PidKiMax);
+  }
 
   if (status_.mode == SmokerMode::Running && output > 0.0f) {
     output = max(output, Config::MinRunningAugerPercent);
   }
 
-  status_.controlPercent = constrain(output, 0.0f, Config::MaxAugerPercent);
+  status_.controlPercent = output;
+  lastErrorC_ = errorC;
+  lastPitC_ = pitTempC;
+  lastDTerm_ = dTerm;
+  lastPidMs_ = nowMs;
 }
 
 void Controller::updateOutputs(unsigned long nowMs) {

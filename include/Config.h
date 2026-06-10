@@ -43,4 +43,9 @@ constexpr float ProportionalGain = 3.0f;
 constexpr float MinRunningAugerPercent = 5.0f;
 constexpr float MaxAugerPercent = 100.0f;
 
+constexpr float PidKp = 3.0f;
+constexpr float PidKi = 0.05f;
+constexpr float PidKd = 0.5f;
+constexpr float PidKiMax = 50.0f;
+
 } // namespace Config

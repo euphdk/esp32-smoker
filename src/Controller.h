@@ -16,9 +16,14 @@ private:
   ControlStatus status_;
   unsigned long modeStartedMs_ = 0;
   unsigned long lastControlLogMs_ = 0;
+  float integralC_ = 0.0f;
+  float lastErrorC_ = 0.0f;
+  float lastPitC_ = 0.0f;
+  float lastDTerm_ = 0.0f;
+  unsigned long lastPidMs_ = 0;
 
   void enterMode(SmokerMode mode, unsigned long nowMs, const char *errorMessage = nullptr);
-  void calculateControl(float pitTempC);
+  void calculatePid(float pitTempC, unsigned long nowMs);
   void updateOutputs(unsigned long nowMs);
   void fail(unsigned long nowMs, const char *message);
 };

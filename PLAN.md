@@ -16,7 +16,7 @@
 1. Confirm the exact ESP32-S3 CYD display and touch pinout.
 2. Add board-specific display setup if the default ILI9341/XPT2046 assumptions are wrong.
 3. Add a real temperature sensor implementation, likely MAX31865/PT100, MAX31855/MAX6675 thermocouple, or analog thermistor depending on hardware.
-4. Replace simple proportional control with a tunable PID implementation.
+4. ~~Replace simple proportional control with a tunable PID implementation.~~ Done: `Controller::calculatePid` with Kp/Ki/Kd and `PidKiMax` anti-windup clamp; derivative on `-dPit/dt` to avoid setpoint kick; PID state reset on every mode transition; P/I/D terms logged on the `[control]` line. Constants live in `include/Config.h` and must be tuned on real hardware.
 5. Add persistent settings for target temperature and calibration.
 6. Add explicit fault screens and operator acknowledgement flow.
 7. Add production safety review before any real auger, fan, igniter, relay, SSR, or mains-voltage integration.
