@@ -2,6 +2,7 @@
 
 #include "Controller.h"
 #include "LogBuffer.h"
+#include "Network.h"
 #include "Outputs.h"
 #include "Settings.h"
 #include "SimulatedTemperatureSensor.h"
@@ -21,6 +22,7 @@ private:
   SimulatedTemperatureSensor sensor_;
   Controller controller_;
   Outputs outputs_;
+  Network network_;
 
   unsigned long lastSensorMs_ = 0;
   unsigned long lastControlMs_ = 0;

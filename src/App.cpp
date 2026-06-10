@@ -17,6 +17,7 @@ void App::begin() {
   controller_.begin(settings_);
   ui_.begin();
   touch_.begin();
+  network_.begin(settings_);
 
   ui_.showBoot();
   delay(1200);
@@ -27,6 +28,7 @@ void App::loop() {
   const unsigned long now = millis();
   handleSerial();
   handleTouch(now);
+  network_.loop();
   settings_.flush(now);
 
   const float calC = settings_.calibrationC();
