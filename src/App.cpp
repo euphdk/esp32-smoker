@@ -129,5 +129,54 @@ void App::handleSerial() {
     return;
   }
 
+  if (line.startsWith("wifi_ssid=")) {
+    settings_.setWifiSsid(line.substring(10));
+    Log.printf("[settings] wifi_ssid=%s pending save\n", settings_.wifiSsid().c_str());
+    return;
+  }
+
+  if (line.startsWith("wifi_pass=")) {
+    settings_.setWifiPass(line.substring(10));
+    Log.println("[settings] wifi_pass=*** pending save");
+    return;
+  }
+
+  if (line.startsWith("mqtt_host=")) {
+    settings_.setMqttHost(line.substring(10));
+    Log.printf("[settings] mqtt_host=%s pending save\n", settings_.mqttHost().c_str());
+    return;
+  }
+
+  if (line.startsWith("mqtt_port=")) {
+    const char *value = line.c_str() + 10;
+    char *end = nullptr;
+    const long parsed = strtol(value, &end, 10);
+    if (end == value || parsed < 1 || parsed > 65535) {
+      Log.println("[settings] mqtt_port= requires 1..65535");
+      return;
+    }
+    settings_.setMqttPort(static_cast<uint16_t>(parsed));
+    Log.printf("[settings] mqtt_port=%u pending save\n", settings_.mqttPort());
+    return;
+  }
+
+  if (line.startsWith("mqtt_user=")) {
+    settings_.setMqttUser(line.substring(10));
+    Log.printf("[settings] mqtt_user=%s pending save\n", settings_.mqttUser().c_str());
+    return;
+  }
+
+  if (line.startsWith("mqtt_pass=")) {
+    settings_.setMqttPass(line.substring(10));
+    Log.println("[settings] mqtt_pass=*** pending save");
+    return;
+  }
+
+  if (line.startsWith("mqtt_base=")) {
+    settings_.setMqttBaseTopic(line.substring(10));
+    Log.printf("[settings] mqtt_base=%s pending save\n", settings_.mqttBaseTopic().c_str());
+    return;
+  }
+
   Log.printf("[settings] unknown command: %s\n", line.c_str());
 }
