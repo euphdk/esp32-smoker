@@ -3,6 +3,7 @@
 #include <Arduino.h>
 
 #include "Config.h"
+#include "Log.h"
 
 namespace {
 constexpr const char *kNamespace = "smoker";
@@ -27,7 +28,7 @@ void Settings::begin() {
   targetC_ = clampTarget(prefs_.getFloat(kKeyTarget, Config::InitialTargetC));
   calibrationC_ = clampCal(prefs_.getFloat(kKeyCal, 0.0f));
   loaded_ = true;
-  Serial.printf("[settings] loaded target=%.1fC cal=%.1fC\n", targetC_, calibrationC_);
+  Log.printf("[settings] loaded target=%.1fC cal=%.1fC\n", targetC_, calibrationC_);
 }
 
 void Settings::setTargetC(float v) {
@@ -59,5 +60,5 @@ void Settings::flush(unsigned long nowMs) {
   prefs_.putFloat(kKeyCal, calibrationC_);
   dirty_ = false;
   lastWriteMs_ = nowMs;
-  Serial.printf("[settings] saved target=%.1fC cal=%.1fC\n", targetC_, calibrationC_);
+  Log.printf("[settings] saved target=%.1fC cal=%.1fC\n", targetC_, calibrationC_);
 }

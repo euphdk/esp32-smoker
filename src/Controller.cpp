@@ -3,6 +3,7 @@
 #include <Arduino.h>
 
 #include "Config.h"
+#include "Log.h"
 #include "Settings.h"
 
 void Controller::begin(Settings &settings) {
@@ -67,7 +68,7 @@ void Controller::update(unsigned long nowMs, float pitTempC, bool sensorValid) {
   if (nowMs - lastControlLogMs_ >= Config::LogUpdateMs) {
     lastControlLogMs_ = nowMs;
     const float pTerm = Config::PidKp * (status_.targetC - pitTempC);
-    Serial.printf("[control] mode=%s pit=%.1fC target=%.1fC output=%.1f%% p=%.1f i=%.1f d=%.1f auger=%d fan=%d igniter=%d\n",
+    Log.printf("[control] mode=%s pit=%.1fC target=%.1fC output=%.1f%% p=%.1f i=%.1f d=%.1f auger=%d fan=%d igniter=%d\n",
                   modeToString(status_.mode), pitTempC, status_.targetC, status_.controlPercent,
                   pTerm, integralC_, lastDTerm_,
                   status_.outputs.auger, status_.outputs.fan, status_.outputs.igniter);
@@ -94,20 +95,20 @@ void Controller::acknowledgeError(unsigned long nowMs) {
     return;
   }
   status_.errorMessage = nullptr;
-  Serial.println("[state] Error -> ErrorCooldown (acknowledged)");
+  Log.println("[state] Error -> ErrorCooldown (acknowledged)");
   enterMode(SmokerMode::ErrorCooldown, nowMs);
 }
 
 void Controller::increaseTarget() {
   settings_->setTargetC(status_.targetC + Config::TargetStepC);
   status_.targetC = settings_->targetC();
-  Serial.printf("[control] target=%.1fC\n", status_.targetC);
+  Log.printf("[control] target=%.1fC\n", status_.targetC);
 }
 
 void Controller::decreaseTarget() {
   settings_->setTargetC(status_.targetC - Config::TargetStepC);
   status_.targetC = settings_->targetC();
-  Serial.printf("[control] target=%.1fC\n", status_.targetC);
+  Log.printf("[control] target=%.1fC\n", status_.targetC);
 }
 
 ControlStatus Controller::status() const { return status_; }
@@ -124,7 +125,7 @@ unsigned long Controller::errorCooldownElapsedMs(unsigned long nowMs) const {
 
 void Controller::enterMode(SmokerMode mode, unsigned long nowMs, const char *errorMessage) {
   if (status_.mode != mode) {
-    Serial.printf("[state] %s -> %s\n", modeToString(status_.mode), modeToString(mode));
+    Log.printf("[state] %s -> %s\n", modeToString(status_.mode), modeToString(mode));
   }
 
   status_.mode = mode;
@@ -190,7 +191,7 @@ void Controller::updateOutputs(unsigned long nowMs) {
 }
 
 void Controller::fail(unsigned long nowMs, const char *message) {
-  Serial.printf("[error] %s\n", message);
+  Log.printf("[error] %s\n", message);
   if (status_.mode != SmokerMode::Error) {
     enterMode(SmokerMode::Error, nowMs, message);
   }

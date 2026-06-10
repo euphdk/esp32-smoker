@@ -3,6 +3,7 @@
 #include <Arduino.h>
 
 #include "Config.h"
+#include "Log.h"
 
 void Outputs::begin() {
   pinMode(Config::AugerPin, OUTPUT);
@@ -28,5 +29,5 @@ void Outputs::writeIfChanged(const char *name, unsigned char pin, bool previous,
 
   // POC only: this is a low-voltage simulated output. Relay/SSR integration belongs here later.
   digitalWrite(pin, next ? HIGH : LOW);
-  Serial.printf("[outputs] %s %s\n", name, next ? "ON" : "OFF");
+  Log.printf("[outputs] %s %s\n", name, next ? "ON" : "OFF");
 }

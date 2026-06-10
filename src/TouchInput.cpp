@@ -3,6 +3,7 @@
 #include <Arduino.h>
 
 #include "Config.h"
+#include "Log.h"
 
 TouchInput::TouchInput() : touch_(Config::TouchCsPin, Config::TouchIrqPin) {}
 
@@ -21,6 +22,6 @@ bool TouchInput::readPoint(int16_t &x, int16_t &y) {
   y = constrain(y, 0, Config::ScreenHeight - 1);
 
   lastTouchMs_ = now;
-  Serial.printf("[touch] x=%d y=%d raw=(%d,%d)\n", x, y, point.x, point.y);
+  Log.printf("[touch] x=%d y=%d raw=(%d,%d)\n", x, y, point.x, point.y);
   return true;
 }

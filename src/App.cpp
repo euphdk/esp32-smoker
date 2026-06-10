@@ -3,11 +3,12 @@
 #include <Arduino.h>
 
 #include "Config.h"
+#include "Log.h"
 
 void App::begin() {
-  Serial.begin(115200);
+  Log.begin(115200);
   delay(100);
-  Serial.printf("\n[boot] %s firmware %s\n", Config::ProjectName, Config::FirmwareVersion);
+  Log.printf("\n[boot] %s firmware %s\n", Config::ProjectName, Config::FirmwareVersion);
 
   settings_.begin();
   outputs_.begin();
@@ -35,7 +36,7 @@ void App::loop() {
     const ControlStatus status = controller_.status();
     const float heatPercent = status.outputs.auger ? status.controlPercent : 0.0f;
     sensor_.update(now, heatPercent, status.outputs.fan);
-    Serial.printf("[sensor] pit=%.1fC cal=%+.1fC valid=%d\n", pitC, calC, sensor_.valid());
+    Log.printf("[sensor] pit=%.1fC cal=%+.1fC valid=%d\n", pitC, calC, sensor_.valid());
   }
 
   if (now - lastControlMs_ >= Config::ControlUpdateMs) {
@@ -114,18 +115,18 @@ void App::handleSerial() {
     char *end = nullptr;
     const float parsed = strtof(value, &end);
     if (end == value) {
-      Serial.println("[settings] cal= requires a numeric value, e.g. cal=1.5");
+      Log.println("[settings] cal= requires a numeric value, e.g. cal=1.5");
       return;
     }
     if (parsed < Config::CalibrationMinC || parsed > Config::CalibrationMaxC) {
-      Serial.printf("[settings] cal=%.2f out of range [%.1f, %.1f]\n",
-                    parsed, Config::CalibrationMinC, Config::CalibrationMaxC);
+      Log.printf("[settings] cal=%.2f out of range [%.1f, %.1f]\n",
+                 parsed, Config::CalibrationMinC, Config::CalibrationMaxC);
       return;
     }
     settings_.setCalibrationC(parsed);
-    Serial.printf("[settings] cal=%+.1fC pending save\n", settings_.calibrationC());
+    Log.printf("[settings] cal=%+.1fC pending save\n", settings_.calibrationC());
     return;
   }
 
-  Serial.printf("[settings] unknown command: %s\n", line.c_str());
+  Log.printf("[settings] unknown command: %s\n", line.c_str());
 }
