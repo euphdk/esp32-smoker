@@ -32,7 +32,6 @@ void App::begin() {
     [](unsigned long t) { app.enqueueAck(t); }
   );
 
-  ui_.showBoot();
   delay(1200);
   ui_.drawMain(sensor_.currentC() + settings_.calibrationC(), controller_.status(), true);
 }
@@ -60,21 +59,22 @@ void App::loop() {
 
   if (now - lastSensorMs_ >= Config::SensorUpdateMs) {
     lastSensorMs_ = now;
-    const ControlStatus status = controller_.status();
-    const float heatPercent = status.outputs.auger ? status.controlPercent : 0.0f;
-    sensor_.update(now, heatPercent, status.outputs.fan);
+    const ControlStatus sensorStatus = controller_.status();
+    const float heatPercent = sensorStatus.outputs.auger ? sensorStatus.controlPercent : 0.0f;
+    sensor_.update(now, heatPercent, sensorStatus.outputs.fan);
     Log.printf("[sensor] pit=%.1fC cal=%+.1fC valid=%d\n", pitC, calC, sensor_.valid());
   }
 
   if (now - lastControlMs_ >= Config::ControlUpdateMs) {
     lastControlMs_ = now;
     controller_.update(now, pitC, sensor_.valid());
-    outputs_.apply(controller_.status().outputs);
   }
+
+  const ControlStatus status = controller_.status();
+  outputs_.apply(status.outputs);
 
   if (now - lastUiMs_ >= Config::UiUpdateMs) {
     lastUiMs_ = now;
-    const ControlStatus status = controller_.status();
     if (status.mode == SmokerMode::Error || status.mode == SmokerMode::ErrorCooldown) {
       ui_.drawError(pitC, status, controller_.errorCooldownElapsedMs(now));
     } else {
@@ -84,14 +84,14 @@ void App::loop() {
 
   StatusSnapshot snap;
   snap.pitC = pitC;
-  snap.targetC = controller_.status().targetC;
+  snap.targetC = status.targetC;
   snap.calibrationC = calC;
-  snap.mode = controller_.status().mode;
-  snap.outputs = controller_.status().outputs;
+  snap.mode = status.mode;
+  snap.outputs = status.outputs;
   snap.wifiConnected = network_.wifiConnected();
   snap.rssi = network_.rssi();
   snap.ip = network_.ipAddress();
-  snap.errorMessage = controller_.status().errorMessage;
+  snap.errorMessage = status.errorMessage;
   snap.uptimeMs = now;
   network_.publishStatus(snap);
   web_.updateSnapshot(snap);
@@ -105,13 +105,13 @@ void App::handleTouch(unsigned long nowMs) {
     return;
   }
 
-  const SmokerMode mode = controller_.status().mode;
-  const bool inFault = mode == SmokerMode::Error || mode == SmokerMode::ErrorCooldown;
+  const ControlStatus status = controller_.status();
+  const bool inFault = status.mode == SmokerMode::Error || status.mode == SmokerMode::ErrorCooldown;
   const UiAction action = ui_.actionForPoint(x, y);
   const float pitC = sensor_.currentC() + settings_.calibrationC();
 
   if (action == UiAction::AcknowledgeError) {
-    if (mode == SmokerMode::Error) {
+    if (status.mode == SmokerMode::Error) {
       controller_.acknowledgeError(nowMs);
       ui_.drawError(pitC, controller_.status(), 0, true);
     }
@@ -138,7 +138,7 @@ void App::handleTouch(unsigned long nowMs) {
   default:
     return;
   }
-  ui_.drawMain(pitC, controller_.status(), true);
+  ui_.drawMain(pitC, controller_.status());
 }
 
 void App::handleSerial() {

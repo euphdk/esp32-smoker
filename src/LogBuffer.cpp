@@ -29,23 +29,16 @@ void LogBuffer::lineComplete() {
   } else {
     tail_ = (tail_ + 1) % Config::LogRingCapacity;
   }
-  ++pending_;
-  if (pending_ > Config::LogRingCapacity) {
-    pending_ = Config::LogRingCapacity;
-  }
   currentLen_ = 0;
 }
 
 bool LogBuffer::takeLine(char *out, size_t outSize) {
-  if (count_ == 0 || pending_ == 0) {
+  if (count_ == 0) {
     return false;
   }
   strncpy(out, lines_[tail_], outSize);
   out[outSize - 1] = '\0';
   tail_ = (tail_ + 1) % Config::LogRingCapacity;
   --count_;
-  if (pending_ > 0) {
-    --pending_;
-  }
   return true;
 }

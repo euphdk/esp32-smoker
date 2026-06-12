@@ -21,8 +21,9 @@ inline void addDevice(JsonObject obj, const String &clientId) {
 inline void addAvailability(JsonObject obj, const String &base, const String &clientId) {
   JsonArray avail = obj["availability"].to<JsonArray>();
   JsonObject a = avail.add<JsonObject>();
-  a["topic"] = base + "/" + clientId + "/status";
-  a["value_template"] = "{{ 'online' if value_json.wifi else 'offline' }}";
+  a["topic"] = base + "/" + clientId + "/lwt";
+  a["payload_available"] = "online";
+  a["payload_not_available"] = "offline";
 }
 
 inline void climate(JsonObject obj, const String &base, const String &clientId) {

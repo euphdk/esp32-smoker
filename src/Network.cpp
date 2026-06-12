@@ -155,9 +155,10 @@ void Network::startMqtt() {
   }
   if (settings_->mqttUser().length() > 0) {
     mqtt_.setCredentials(settings_->mqttUser().c_str(), settings_->mqttPass().c_str());
-  } else {
-    mqtt_.setCredentials("", "");
   }
+  lwtTopic_ = baseTopic() + "/" + clientId_ + "/lwt";
+  mqtt_.setWill(lwtTopic_.c_str(), 0, true, "offline");
+
   Log.printf("[mqtt] connecting to %s:%u as %s\n",
              settings_->mqttHost().c_str(), port, clientId_.c_str());
   mqtt_.connect();
@@ -170,6 +171,9 @@ void Network::onMqttConnect(bool sessionPresent) {
 
   const String base = baseTopic();
   const String id = clientId_;
+
+  // Publish LWT birth message.
+  mqtt_.publish((base + "/" + id + "/lwt").c_str(), 0, true, "online");
 
   // Subscribe to command topics.
   mqtt_.subscribe((base + "/" + id + "/target/set").c_str(), 0);

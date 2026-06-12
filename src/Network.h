@@ -63,6 +63,7 @@ private:
   Settings *settings_ = nullptr;
   AsyncMqttClient mqtt_;
   String clientId_;
+  String lwtTopic_;
   void (*cmdTarget_)(float) = nullptr;
   void (*cmdCalibration_)(float) = nullptr;
   void (*cmdAck_)(unsigned long) = nullptr;

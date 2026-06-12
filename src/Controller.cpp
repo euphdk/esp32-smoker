@@ -13,8 +13,13 @@ void Controller::begin(Settings &settings) {
 }
 
 void Controller::update(unsigned long nowMs, float pitTempC, bool sensorValid) {
+  if (status_.mode == SmokerMode::Error) {
+    return;
+  }
+
   if (!sensorValid || pitTempC < Config::InvalidLowC || pitTempC > Config::InvalidHighC) {
     fail(nowMs, "Invalid sensor value");
+    return;
   }
 
   switch (status_.mode) {
@@ -218,8 +223,8 @@ void Controller::updateOutputs(unsigned long nowMs) {
 }
 
 void Controller::fail(unsigned long nowMs, const char *message) {
-  Log.printf("[error] %s\n", message);
   if (status_.mode != SmokerMode::Error) {
+    Log.printf("[error] %s\n", message);
     enterMode(SmokerMode::Error, nowMs, message);
   }
 }
